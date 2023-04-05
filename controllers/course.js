@@ -1,3 +1,4 @@
+// skit i allt som har med slug eller slugify
 const { default: slugify } = require("slugify");
 const Course = require("../models/course");
 
@@ -15,10 +16,14 @@ exports.createCourse = async (req, res) => {
 
 exports.getAllCourses = async (req, res) => {
   try {
-    const allCourses = await Course.find(
-      { published: true, published: false },
-      { title: 1, category: 1 }
-    )
+    // ni kan prova att bara använda find() och inte lägga till select m.m det ni behöver avsluta
+    // med i så fall är exec();
+    // select() = väljer vilka fält från modellen ni vill hämta
+    // populate() populera fält på en referens och välja vilka fält man vill ha med i responsen
+    // sort() sorterar man kan köra 1 eller testa -1
+    const allCourses = await Course.find()
+      .select("title category instructor")
+      .populate("instructor", "first_name last_name")
       .sort({ createdAt: 1 })
       .exec();
     return res.status(200).json(allCourses);
@@ -30,6 +35,8 @@ exports.getAllCourses = async (req, res) => {
 
 exports.getSingleCourse = async (req, res) => {
   try {
+    // normalt sett så letar efter en specifik entity med id inte med slug
+    // man kan använda findById()
     const course = await Course.findOne({ slug: req.params.slug })
       .populate("instructor", "_id first_name last_name")
       .exec();
@@ -42,11 +49,14 @@ exports.getSingleCourse = async (req, res) => {
 
 exports.updateCourse = async (req, res) => {
   try {
+    // ej relevant för er
     if (req.body.title) {
       updatedSlug = slugify(req.body.title).toLowerCase();
       req.body.slug = updatedSlug;
     }
+    // här är det relevant
     const updated = await Course.findOneAndUpdate(
+      // här letar ni efter id istället
       { slug: req.params.slug },
       req.body,
       { new: true }
@@ -58,6 +68,7 @@ exports.updateCourse = async (req, res) => {
   }
 };
 
+// kanske går att ha som underlag till activate/deactivate
 exports.publishCourse = async (req, res) => {
   try {
     published = true;
